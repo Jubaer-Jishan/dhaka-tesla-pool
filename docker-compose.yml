@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: dhaka-tesla-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: tesla
+      POSTGRES_PASSWORD: tesla_dev_password
+      POSTGRES_DB: tesla_pool
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tesla -d tesla_pool"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
