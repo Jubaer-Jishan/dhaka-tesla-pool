@@ -5,6 +5,8 @@ import { AuthModule } from './auth/auth.module';
 import { RideRequestsModule } from './ride-requests/ride-requests.module';
 import { DriversModule } from './drivers/drivers.module';
 import { PoolMatchingModule } from './pool-matching/pool-matching.module';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
 
 @Module({
   imports: [
@@ -29,5 +31,7 @@ import { PoolMatchingModule } from './pool-matching/pool-matching.module';
       migrationsRun: false,
     }),
   ],
+  controllers: [AppController],
+  providers: [AppService],
 })
 export class AppModule {}

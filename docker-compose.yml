@@ -15,7 +15,54 @@ services:
       test: ["CMD-SHELL", "pg_isready -U tesla -d tesla_pool"]
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+    container_name: dhaka-tesla-backend
+    restart: unless-stopped
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USERNAME: tesla
+      DB_PASSWORD: ${DB_PASSWORD:-tesla_dev_password}
+      DB_NAME: tesla_pool
+      JWT_SECRET: ${JWT_SECRET:-local-development-secret-change-me}
+      PORT: 3000
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/health').then(r => { if (!r.ok) process.exit(1) }).catch(() => process.exit(1))"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        BACKEND_URL: http://backend:3000
+    container_name: dhaka-tesla-frontend
+    restart: unless-stopped
+    environment:
+      BACKEND_URL: http://backend:3000
+      PORT: 3000
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "3001:3000"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/').then(r => { if (!r.ok) process.exit(1) }).catch(() => process.exit(1))"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
 
 volumes:
   postgres_data:

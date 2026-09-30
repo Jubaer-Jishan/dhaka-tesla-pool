@@ -1,7 +1,10 @@
 import 'reflect-metadata';
+import { existsSync } from 'node:fs';
 import { DataSource } from 'typeorm';
 
-process.loadEnvFile();
+if (existsSync('.env')) {
+  process.loadEnvFile();
+}
 
 export default new DataSource({
   type: 'postgres',

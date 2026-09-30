@@ -1,69 +1,75 @@
-import Image from "next/image";
+"use client";
+
+import { FormEvent, useEffect, useState } from "react";
+
+type Role = "passenger" | "driver";
+type User = { id: string; fullName: string; email: string; phone: string; role: Role };
+type Session = { accessToken: string; user: User };
+type Ride = { id: string; pickupArea: string; destinationArea: string; requestedSeats: number; estimatedDistanceKm: number; estimatedFare: number; status: string; pool?: Pool | null };
+type Member = { id: string; requestedSeats: number; fare: number; status: string; user?: User; rideRequest?: Ride };
+type Pool = { id: string; origin: string; destination: string; status: string; totalFare: number; members?: Member[]; vehicle?: { make: string; model: string } };
+
+const areas = ["Badda", "Banani", "Bashundhara", "Dhanmondi", "Farmgate", "Gulshan", "Jatrabari", "Khilgaon", "Mirpur", "Mohakhali", "Mohammadpur", "Motijheel", "Paltan", "Rampura", "Tejgaon", "Uttara", "Wari"];
+const activeStatuses = ["requested", "matched", "accepted", "driver_arrived", "started", "in_progress"];
+
+async function request<T>(path: string, token?: string, options: RequestInit = {}): Promise<T> {
+  const response = await fetch(`/api${path}`, { ...options, headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}), ...options.headers } });
+  const body = await response.json().catch(() => null);
+  if (!response.ok) throw new Error(body?.message ?? "The request could not be completed.");
+  return body as T;
+}
+function fareEstimate(distance: number, seats: number) { return Math.round((50 + distance * 20 + (seats - 1) * 20) * 100) / 100; }
+function formatStatus(status?: string) { return status?.replaceAll("_", " ") ?? "unknown"; }
+
+function Field({ label, value, onChange, type = "text" }: { label: string; value: string; onChange: (value: string) => void; type?: string }) { return <label className="field"><span>{label}</span><input required type={type} value={value} onChange={(event) => onChange(event.target.value)} /></label>; }
+function Select({ label, value, options, onChange }: { label: string; value: string; options: string[]; onChange: (value: string) => void }) { return <label className="field"><span>{label}</span><select value={value} onChange={(event) => onChange(event.target.value)}>{options.map((option) => <option key={option}>{option}</option>)}</select></label>; }
+function NumberField({ label, value, onChange, min, max, step = 1 }: { label: string; value: number; onChange: (value: string) => void; min: number; max?: number; step?: number }) { return <label className="field"><span>{label}</span><input required type="number" min={min} max={max} step={step} value={value} onChange={(event) => onChange(event.target.value)} /></label>; }
+function Status({ status }: { status?: string }) { return <span className={`status status-${status}`}>{formatStatus(status)}</span>; }
+function Empty({ title, text }: { title: string; text: string }) { return <div className="empty"><strong>{title}</strong><span>{text}</span></div>; }
+
+function AuthScreen({ onAuth }: { onAuth: (session: Session) => void }) {
+  const [mode, setMode] = useState<"login" | "signup">("login");
+  const [role, setRole] = useState<Role>("passenger");
+  const [form, setForm] = useState({ fullName: "", email: "", phone: "", password: "" });
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  async function submit(event: FormEvent) { event.preventDefault(); setBusy(true); setError(""); try { const session = await request<Session>(`/auth/${mode}`, undefined, { method: "POST", body: JSON.stringify(mode === "login" ? { email: form.email, password: form.password } : { ...form, role }) }); onAuth(session); } catch (reason) { setError(reason instanceof Error ? reason.message : "Unable to sign in."); } finally { setBusy(false); } }
+  return <main className="auth-shell"><section className="auth-copy"><p className="eyebrow">Dhaka Tesla Pool</p><h1>Move through Dhaka, together.</h1><p>Simple shared rides for passengers and the drivers who keep the city moving.</p></section><form className="auth-card" onSubmit={submit}><div className="auth-tabs"><button type="button" className={mode === "login" ? "tab active" : "tab"} onClick={() => setMode("login")}>Log in</button><button type="button" className={mode === "signup" ? "tab active" : "tab"} onClick={() => setMode("signup")}>Create account</button></div><div className="form-heading"><p className="eyebrow">{mode === "login" ? "Welcome back" : "Join the pool"}</p><h2>{mode === "login" ? "Your next ride is close." : "Create your account."}</h2></div>{mode === "signup" && <Field label="Full name" value={form.fullName} onChange={(value) => setForm({ ...form, fullName: value })} />}<Field label="Email" type="email" value={form.email} onChange={(value) => setForm({ ...form, email: value })} />{mode === "signup" && <Field label="Phone" value={form.phone} onChange={(value) => setForm({ ...form, phone: value })} />}<Field label="Password" type="password" value={form.password} onChange={(value) => setForm({ ...form, password: value })} />{mode === "signup" && <div className="role-switch"><span>Account type</span><div><button type="button" className={role === "passenger" ? "choice selected" : "choice"} onClick={() => setRole("passenger")}>Passenger</button><button type="button" className={role === "driver" ? "choice selected" : "choice"} onClick={() => setRole("driver")}>Driver</button></div></div>}{error && <p className="error">{error}</p>}<button className="primary-button" disabled={busy}>{busy ? "Working..." : mode === "login" ? "Log in" : "Create account"}</button></form></main>;
+}
 
 export default function Home() {
-  return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
-  );
+  const [session, setSession] = useState<Session | null>(() => {
+    if (typeof window === "undefined") return null;
+    const saved = window.localStorage.getItem("tesla-pool-session");
+    return saved ? JSON.parse(saved) : null;
+  });
+  function authenticate(next: Session) { window.localStorage.setItem("tesla-pool-session", JSON.stringify(next)); setSession(next); }
+  function signOut() { window.localStorage.removeItem("tesla-pool-session"); setSession(null); }
+  if (!session) return <AuthScreen onAuth={authenticate} />;
+  return <Dashboard session={session} onSignOut={signOut} />;
 }
+
+function Dashboard({ session, onSignOut }: { session: Session; onSignOut: () => void }) {
+  const [error, setError] = useState(""); const [refreshKey, setRefreshKey] = useState(0);
+  return <div className="app-shell"><header className="topbar"><div><p className="eyebrow">Dhaka Tesla Pool</p><strong>{session.user.fullName}</strong></div><div className="topbar-actions"><span className="role-pill">{session.user.role}</span><button className="quiet-button" onClick={onSignOut}>Sign out</button></div></header><main className="dashboard"><div className="dashboard-heading"><div><p className="eyebrow">{session.user.role === "passenger" ? "Passenger desk" : "Driver desk"}</p><h1>{session.user.role === "passenger" ? "Your rides, at a glance." : "Keep your pool moving."}</h1></div><button className="quiet-button" onClick={() => { setError(""); setRefreshKey((value) => value + 1); }}>Refresh</button></div>{error && <p className="error banner">{error}</p>}{session.user.role === "passenger" ? <PassengerView token={session.accessToken} refreshKey={refreshKey} onError={setError} /> : <DriverView token={session.accessToken} refreshKey={refreshKey} onError={setError} />}</main></div>;
+}
+
+function PassengerView({ token, refreshKey, onError }: { token: string; refreshKey: number; onError: (message: string) => void }) {
+  const [current, setCurrent] = useState<Ride | null>(null); const [history, setHistory] = useState<Ride[]>([]); const [form, setForm] = useState({ pickupArea: "Banani", destinationArea: "Gulshan", requestedSeats: 1, estimatedDistanceKm: 5 }); const [busy, setBusy] = useState(false); const estimate = fareEstimate(form.estimatedDistanceKm, form.requestedSeats);
+  useEffect(() => { Promise.all([request<Ride | null>("/ride-requests/current", token), request<Ride[]>("/ride-requests/history", token)]).then(([ride, rides]) => { setCurrent(ride); setHistory(rides); }).catch((reason) => onError(reason instanceof Error ? reason.message : "Could not load your rides.")); }, [token, refreshKey, onError]);
+  async function createRide(event: FormEvent) { event.preventDefault(); setBusy(true); onError(""); try { await request("/ride-requests", token, { method: "POST", body: JSON.stringify({ ...form, requestedSeats: Number(form.requestedSeats), estimatedDistanceKm: Number(form.estimatedDistanceKm) }) }); setCurrent(null); window.location.reload(); } catch (reason) { onError(reason instanceof Error ? reason.message : "Could not request a ride."); } finally { setBusy(false); } }
+  async function cancel() { if (!current) return; setBusy(true); try { await request(`/ride-requests/${current.id}/cancel`, token, { method: "POST" }); window.location.reload(); } catch (reason) { onError(reason instanceof Error ? reason.message : "Could not cancel the ride."); } finally { setBusy(false); } }
+  return <div className="content-grid"><section className="panel request-panel"><div className="panel-title"><div><p className="eyebrow">New request</p><h2>Find a shared ride</h2></div><span className="price">৳{estimate.toFixed(2)}</span></div><form onSubmit={createRide}><div className="two-col"><Select label="Pickup" value={form.pickupArea} options={areas} onChange={(value) => setForm({ ...form, pickupArea: value })} /><Select label="Destination" value={form.destinationArea} options={areas} onChange={(value) => setForm({ ...form, destinationArea: value })} /></div><div className="two-col"><NumberField label="Seats" min={1} max={6} value={form.requestedSeats} onChange={(value) => setForm({ ...form, requestedSeats: Number(value) })} /><NumberField label="Distance (km)" min={0.1} step={0.1} value={form.estimatedDistanceKm} onChange={(value) => setForm({ ...form, estimatedDistanceKm: Number(value) })} /></div><p className="muted">Estimate: base ৳50 + ৳20/km + ৳20 for each extra seat.</p><button className="primary-button" disabled={busy}>Request ride</button></form></section><section className="panel current-panel"><div className="panel-title"><div><p className="eyebrow">Live status</p><h2>Current ride</h2></div>{current && <Status status={current.status} />}</div>{current ? <RideDetails ride={current} /> : <Empty title="No active ride" text="Your next request will appear here." />}{current && activeStatuses.slice(0, 2).includes(current.status) && <button className="danger-button" onClick={cancel} disabled={busy}>Cancel ride</button>}</section><section className="panel history-panel"><div className="panel-title"><div><p className="eyebrow">Completed activity</p><h2>Ride history</h2></div><span className="count">{history.length}</span></div>{history.length ? <div className="list">{history.map((ride) => <div className="history-row" key={ride.id}><div><strong>{ride.pickupArea} <span className="arrow">→</span> {ride.destinationArea}</strong><small>{ride.requestedSeats} seat{ride.requestedSeats === 1 ? "" : "s"} · ৳{ride.estimatedFare.toFixed(2)}</small></div><Status status={ride.status} /></div>)}</div> : <Empty title="No history yet" text="Completed and cancelled rides will land here." />}</section></div>;
+}
+
+function DriverView({ token, refreshKey, onError }: { token: string; refreshKey: number; onError: (message: string) => void }) {
+  const [pool, setPool] = useState<Pool | null>(null); const [history, setHistory] = useState<Member[]>([]); const [online, setOnline] = useState(false); const [rideId, setRideId] = useState(""); const [busy, setBusy] = useState(false);
+  useEffect(() => { Promise.all([request<Pool | null>("/driver/current", token), request<Member[]>("/driver/history", token)]).then(([currentPool, rides]) => { setPool(currentPool); setHistory(rides); }).catch((reason) => onError(reason instanceof Error ? reason.message : "Could not load the driver desk.")); }, [token, refreshKey, onError]);
+  async function setDriverStatus(next: boolean) { setBusy(true); try { await request("/driver/status", token, { method: "PATCH", body: JSON.stringify({ isOnline: next }) }); setOnline(next); } catch (reason) { onError(reason instanceof Error ? reason.message : "Could not update availability."); } finally { setBusy(false); } }
+  async function accept(event: FormEvent) { event.preventDefault(); if (!rideId) return; setBusy(true); try { await request(`/ride-requests/${rideId}/accept`, token, { method: "POST" }); setRideId(""); window.location.reload(); } catch (reason) { onError(reason instanceof Error ? reason.message : "Could not accept that request."); } finally { setBusy(false); } }
+  async function transition(id: string, action: "arrive" | "start" | "complete") { setBusy(true); try { await request(`/ride-requests/${id}/${action}`, token, { method: "POST" }); window.location.reload(); } catch (reason) { onError(reason instanceof Error ? reason.message : "Could not update the ride."); } finally { setBusy(false); } }
+  return <div className="content-grid"><section className="panel driver-hero"><div><p className="eyebrow">Availability</p><h2>{online ? "You are online" : "You are offline"}</h2><p className="muted">Go online when you are ready to accept a ride.</p></div><button className={online ? "toggle on" : "toggle"} onClick={() => setDriverStatus(!online)} disabled={busy}><span />{online ? "Online" : "Offline"}</button></section><section className="panel request-panel"><div className="panel-title"><div><p className="eyebrow">Incoming requests</p><h2>Accept a ride</h2></div></div><p className="muted">The current API does not expose a request list. Paste a requested ride ID from your dispatch source to accept it.</p><form className="inline-form" onSubmit={accept}><input placeholder="Ride request ID" value={rideId} onChange={(event) => setRideId(event.target.value)} required /><button className="primary-button" disabled={busy || !online}>Accept</button></form></section><section className="panel current-panel"><div className="panel-title"><div><p className="eyebrow">Live pool</p><h2>Current pool</h2></div>{pool && <Status status={pool.status} />}</div>{pool ? <><div className="pool-summary"><div><span>Route</span><strong>{pool.origin} <span className="arrow">→</span> {pool.destination}</strong></div><div><span>Pool fare</span><strong>৳{(pool.totalFare ?? 0).toFixed(2)}</strong></div><div><span>Vehicle</span><strong>{pool.vehicle?.make} {pool.vehicle?.model}</strong></div></div><div className="member-list">{pool.members?.map((member) => <div className="member-row" key={member.id}><div><strong>{member.user?.fullName ?? "Passenger"}</strong><small>{member.requestedSeats} seat{member.requestedSeats === 1 ? "" : "s"} · ৳{member.fare.toFixed(2)} · {formatStatus(member.rideRequest?.status)}</small></div><RideActions ride={member.rideRequest} onAction={transition} disabled={busy} /></div>)}</div></> : <Empty title="No active pool" text="Accepted rides will appear in your current pool." />}</section><section className="panel history-panel"><div className="panel-title"><div><p className="eyebrow">Past rides</p><h2>Ride history</h2></div><span className="count">{history.length}</span></div>{history.length ? <div className="list">{history.map((member) => <div className="history-row" key={member.id}><div><strong>{member.rideRequest?.pickupArea} <span className="arrow">→</span> {member.rideRequest?.destinationArea}</strong><small>{member.user?.fullName} · ৳{member.fare.toFixed(2)}</small></div><Status status={member.rideRequest?.status} /></div>)}</div> : <Empty title="No ride history" text="Completed rides will land here." />}</section></div>;
+}
+
+function RideActions({ ride, onAction, disabled }: { ride?: Ride; onAction: (id: string, action: "arrive" | "start" | "complete") => void; disabled: boolean }) { if (!ride) return null; const action = ride.status === "matched" || ride.status === "accepted" ? "arrive" : ride.status === "driver_arrived" ? "start" : ride.status === "started" ? "complete" : null; return action ? <button className="small-button" onClick={() => onAction(ride.id, action)} disabled={disabled}>{action === "arrive" ? "Arrived" : action === "start" ? "Start" : "Complete"}</button> : null; }
+function RideDetails({ ride }: { ride: Ride }) { return <div className="ride-details"><div className="route-line"><strong>{ride.pickupArea}</strong><span>→</span><strong>{ride.destinationArea}</strong></div><div className="detail-grid"><span>Seats<strong>{ride.requestedSeats}</strong></span><span>Fare<strong>৳{ride.estimatedFare.toFixed(2)}</strong></span><span>Distance<strong>{ride.estimatedDistanceKm} km</strong></span></div>{ride.pool && <p className="muted">Matched pool: {ride.pool.origin} → {ride.pool.destination}</p>}</div>; }
