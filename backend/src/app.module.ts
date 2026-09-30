@@ -1,12 +1,16 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { AuthModule } from './auth/auth.module';
+import { RideRequestsModule } from './ride-requests/ride-requests.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    AuthModule,
+    RideRequestsModule,
     TypeOrmModule.forRoot({
       type: 'postgres',
       host: process.env.DB_HOST,
@@ -15,7 +19,10 @@ import { TypeOrmModule } from '@nestjs/typeorm';
       password: process.env.DB_PASSWORD,
       database: process.env.DB_NAME,
       autoLoadEntities: true,
+      entities: [__dirname + '/database/entities/*{.ts,.js}'],
       synchronize: false,
+      migrations: [__dirname + '/database/migrations/*{.ts,.js}'],
+      migrationsRun: false,
     }),
   ],
 })
