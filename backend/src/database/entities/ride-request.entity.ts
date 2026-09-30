@@ -5,11 +5,13 @@ import {
   JoinColumn,
   ManyToOne,
   OneToMany,
+  OneToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
 import { RideRequestStatus } from '../enums';
 import { Pool } from './pool.entity';
+import { PoolMember } from './pool-member.entity';
 import { RideStatusHistory } from './ride-status-history.entity';
 import { User } from './user.entity';
 
@@ -52,6 +54,9 @@ export class RideRequest {
 
   @OneToMany(() => RideStatusHistory, (history) => history.rideRequest)
   statusHistory: RideStatusHistory[];
+
+  @OneToOne(() => PoolMember, (poolMember) => poolMember.rideRequest)
+  poolMember: PoolMember | null;
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt: Date;

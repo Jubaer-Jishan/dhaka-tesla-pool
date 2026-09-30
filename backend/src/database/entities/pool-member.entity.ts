@@ -4,12 +4,14 @@ import {
   Entity,
   JoinColumn,
   ManyToOne,
+  OneToOne,
   PrimaryGeneratedColumn,
   Unique,
   UpdateDateColumn,
 } from 'typeorm';
 import { PoolMemberStatus } from '../enums';
 import { Pool } from './pool.entity';
+import { RideRequest } from './ride-request.entity';
 import { User } from './user.entity';
 
 @Entity('pool_members')
@@ -25,6 +27,18 @@ export class PoolMember {
   @ManyToOne(() => User, (user) => user.poolMembers, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })
   user: User;
+
+  @OneToOne(() => RideRequest, (rideRequest) => rideRequest.poolMember, {
+    onDelete: 'CASCADE',
+  })
+  @JoinColumn({ name: 'ride_request_id' })
+  rideRequest: RideRequest;
+
+  @Column({ name: 'requested_seats', type: 'smallint' })
+  requestedSeats: number;
+
+  @Column({ type: 'double precision' })
+  fare: number;
 
   @Column({ type: 'enum', enum: PoolMemberStatus, default: PoolMemberStatus.REQUESTED })
   status: PoolMemberStatus;

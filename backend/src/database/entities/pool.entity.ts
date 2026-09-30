@@ -42,6 +42,9 @@ export class Pool {
   @Column({ type: 'enum', enum: PoolStatus, default: PoolStatus.OPEN })
   status: PoolStatus;
 
+  @Column({ name: 'total_fare', type: 'double precision', default: 0 })
+  totalFare: number;
+
   @OneToMany(() => PoolMember, (poolMember) => poolMember.pool)
   members: PoolMember[];
 

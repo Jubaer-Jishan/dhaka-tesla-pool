@@ -3,6 +3,8 @@ import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from './auth/auth.module';
 import { RideRequestsModule } from './ride-requests/ride-requests.module';
+import { DriversModule } from './drivers/drivers.module';
+import { PoolMatchingModule } from './pool-matching/pool-matching.module';
 
 @Module({
   imports: [
@@ -11,6 +13,8 @@ import { RideRequestsModule } from './ride-requests/ride-requests.module';
     }),
     AuthModule,
     RideRequestsModule,
+    DriversModule,
+    PoolMatchingModule,
     TypeOrmModule.forRoot({
       type: 'postgres',
       host: process.env.DB_HOST,

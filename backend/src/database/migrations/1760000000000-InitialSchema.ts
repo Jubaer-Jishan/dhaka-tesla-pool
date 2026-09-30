@@ -14,6 +14,7 @@ export class InitialSchema1760000000000 implements MigrationInterface {
           { name: 'email', type: 'varchar', length: '255', isUnique: true },
           { name: 'phone', type: 'varchar', length: '30', isUnique: true },
           { name: 'role', type: 'enum', enum: Object.values(UserRole), default: `'${UserRole.PASSENGER}'` },
+          { name: 'is_online', type: 'boolean', default: false },
           { name: 'created_at', type: 'timestamptz', default: 'now()' },
           { name: 'updated_at', type: 'timestamptz', default: 'now()' },
         ],
@@ -51,6 +52,7 @@ export class InitialSchema1760000000000 implements MigrationInterface {
           { name: 'departure_time', type: 'timestamptz' },
           { name: 'max_members', type: 'smallint', default: '3' },
           { name: 'status', type: 'enum', enum: Object.values(PoolStatus), default: `'${PoolStatus.OPEN}'` },
+          { name: 'total_fare', type: 'double precision', default: 0 },
           { name: 'created_at', type: 'timestamptz', default: 'now()' },
           { name: 'updated_at', type: 'timestamptz', default: 'now()' },
         ],
@@ -92,6 +94,9 @@ export class InitialSchema1760000000000 implements MigrationInterface {
           { name: 'id', type: 'uuid', isPrimary: true, isGenerated: true, generationStrategy: 'uuid' },
           { name: 'pool_id', type: 'uuid' },
           { name: 'user_id', type: 'uuid' },
+          { name: 'ride_request_id', type: 'uuid', isUnique: true },
+          { name: 'requested_seats', type: 'smallint' },
+          { name: 'fare', type: 'double precision' },
           { name: 'status', type: 'enum', enum: Object.values(PoolMemberStatus), default: `'${PoolMemberStatus.REQUESTED}'` },
           { name: 'joined_at', type: 'timestamptz', isNullable: true },
           { name: 'created_at', type: 'timestamptz', default: 'now()' },
@@ -101,6 +106,7 @@ export class InitialSchema1760000000000 implements MigrationInterface {
         foreignKeys: [
           { columnNames: ['pool_id'], referencedTableName: 'pools', referencedColumnNames: ['id'], onDelete: 'CASCADE' },
           { columnNames: ['user_id'], referencedTableName: 'users', referencedColumnNames: ['id'], onDelete: 'CASCADE' },
+          { columnNames: ['ride_request_id'], referencedTableName: 'ride_requests', referencedColumnNames: ['id'], onDelete: 'CASCADE' },
         ],
       }),
     );

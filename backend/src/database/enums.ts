@@ -7,6 +7,8 @@ export enum RideRequestStatus {
   REQUESTED = 'requested',
   MATCHED = 'matched',
   ACCEPTED = 'accepted',
+  DRIVER_ARRIVED = 'driver_arrived',
+  STARTED = 'started',
   IN_PROGRESS = 'in_progress',
   COMPLETED = 'completed',
   CANCELLED = 'cancelled',

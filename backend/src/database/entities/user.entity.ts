@@ -33,6 +33,9 @@ export class User {
   @Column({ type: 'enum', enum: UserRole, default: UserRole.PASSENGER })
   role: UserRole;
 
+  @Column({ name: 'is_online', type: 'boolean', default: false })
+  isOnline: boolean;
+
   @OneToMany(() => Vehicle, (vehicle) => vehicle.owner)
   vehicles: Vehicle[];
 
